@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/ssr0016/ecommmerse-app/internal/api/rest"
 	"github.com/ssr0016/ecommmerse-app/internal/dto"
+	"github.com/ssr0016/ecommmerse-app/internal/repository"
 	"github.com/ssr0016/ecommmerse-app/internal/service"
 )
 
@@ -18,7 +19,10 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 	app := rh.App
 
 	// create an instance of user handler & inject to handler
-	svc := service.UserService{}
+	svc := service.UserService{
+		Repo: repository.NewUserRepository(rh.DB),
+	}
+
 	handler := &UserHandler{
 		svc: svc,
 	}
@@ -66,8 +70,26 @@ func (h *UserHandler) Register(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(ctx *fiber.Ctx) error {
+	loginInput := dto.UserLogin{}
+
+	err := ctx.BodyParser(&loginInput)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "please provide valid inputs",
+		})
+	}
+
+	token, err := h.svc.Login(loginInput.Email, loginInput.Password)
+
+	if err != nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"message": "please provide correct user id and password",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{
 		"message": "login",
+		"token":   token,
 	})
 
 }
