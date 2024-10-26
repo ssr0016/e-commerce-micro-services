@@ -2,35 +2,35 @@ package service
 
 import (
 	"errors"
-	"fmt"
-	"log"
 
 	"github.com/ssr0016/ecommmerse-app/internal/domain"
 	"github.com/ssr0016/ecommmerse-app/internal/dto"
+	"github.com/ssr0016/ecommmerse-app/internal/helper"
 	"github.com/ssr0016/ecommmerse-app/internal/repository"
 )
 
 type UserService struct {
 	Repo repository.UserRepository
+	Auth helper.Auth
 }
 
 func (s *UserService) Signup(input dto.UserSignup) (string, error) {
-
-	log.Println(input)
+	hashedPassword, err := s.Auth.CreateHashedPassword(input.Password)
+	if err != nil {
+		return "", err
+	}
 
 	user, err := s.Repo.CreateUser(domain.User{
 		Email:    input.Email,
-		Password: input.Password,
+		Password: hashedPassword,
 		Phone:    input.Phone,
 	})
 
-	// generate token
-	log.Println(user)
+	if err != nil {
+		return "", err
+	}
 
-	userInfo := fmt.Sprintf("%+v, %+v, %v", user.ID, user.Email, user.UserType)
-
-	// call db to create user
-	return userInfo, err
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s *UserService) findUserByEmail(email string) (*domain.User, error) {
@@ -40,15 +40,18 @@ func (s *UserService) findUserByEmail(email string) (*domain.User, error) {
 }
 
 func (s *UserService) Login(email, password string) (string, error) {
-
 	user, err := s.findUserByEmail(email)
 	if err != nil {
-		return "", errors.New("user doest not exist with the provided mail id")
+		return "", errors.New("user does not exist with the provided email id")
 	}
 
-	// compare password and generate token
+	err = s.Auth.VerifyPassword(user.Password, password)
+	if err != nil {
+		return "", err
+	}
 
-	return user.Email, nil
+	// generate token
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s *UserService) GetVerificationCode(e domain.User) (int, error) {

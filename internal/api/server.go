@@ -8,6 +8,7 @@ import (
 	"github.com/ssr0016/ecommmerse-app/internal/api/rest"
 	"github.com/ssr0016/ecommmerse-app/internal/api/rest/handlers"
 	"github.com/ssr0016/ecommmerse-app/internal/domain"
+	"github.com/ssr0016/ecommmerse-app/internal/helper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -26,9 +27,12 @@ func StartServer(config config.AppConfig) {
 	// run migration
 	db.AutoMigrate(&domain.User{})
 
+	auth := helper.SetupAuth(config.AppSecret)
+
 	rh := &rest.RestHandler{
-		App: app,
-		DB:  db,
+		App:  app,
+		DB:   db,
+		Auth: auth,
 	}
 
 	setupRoutes(rh)
