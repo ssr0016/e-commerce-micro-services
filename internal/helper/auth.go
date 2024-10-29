@@ -110,6 +110,13 @@ func (a Auth) VerifyToken(t string) (domain.User, error) {
 }
 func (a Auth) Authorize(ctx *fiber.Ctx) error {
 	authHeader := ctx.GetReqHeaders()["Authorization"]
+	if len(authHeader) == 0 {
+		return ctx.Status(401).JSON(&fiber.Map{
+			"message": "authorization failed",
+			"reason":  "no token provided or invalid token provided",
+		})
+	}
+
 	user, err := a.VerifyToken(authHeader[0])
 
 	if err == nil && user.ID > 0 {
@@ -126,4 +133,8 @@ func (a Auth) Authorize(ctx *fiber.Ctx) error {
 func (a Auth) GetCurrentUser(ctx *fiber.Ctx) domain.User {
 	user := ctx.Locals("user")
 	return user.(domain.User)
+}
+
+func (a Auth) GenerateCode() (int, error) {
+	return RandomNumbers(6)
 }
