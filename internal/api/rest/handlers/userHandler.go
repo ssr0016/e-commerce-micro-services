@@ -182,7 +182,29 @@ func (h *UserHandler) GetOrder(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {
+
+	// authenticated user
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	// request
+	req := dto.SellerInput{}
+
+	err := ctx.BodyParser(&req)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "request parameters is not valid",
+		})
+	}
+
+	token, err := h.svc.BecomeSeller(user.ID, req)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "failed to become seller",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(fiber.Map{
 		"message": "become seller",
+		"token":   token,
 	})
 }
